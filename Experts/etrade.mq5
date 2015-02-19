@@ -9,12 +9,13 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-
+int EVENT_ID = 0;
+bool IS_ACTIVE = false;
 
 int OnInit()
   {
 //--- create timer
-   EventSetTimer(5);
+   EventSetMillisecondTimer(500);
    
       
 //---
@@ -42,17 +43,27 @@ void OnTick()
 //| Timer function                                                   |
 //+------------------------------------------------------------------+
 void OnTimer()
-  {
-//---
-   string ss;
-   ss = ChartGetString(ChartID(),CHART_COMMENT);
-   ChartSetString(0,CHART_COMMENT,"Test comment.\nSecond line.\nThird!");
-   ChartRedraw();
-   
-   string comm=ChartGetString(0,CHART_COMMENT);
-   Print("test\n");
-   
-  }
+{   
+   string frameIdStr;    
+   int FRAME_ID;     
+   frameIdStr = ChartGetString(ChartID(),CHART_COMMENT);
+   FRAME_ID = StringToInteger(frameIdStr);
+   if ( FRAME_ID > 0 ) {
+      while(!IsStopped()) {
+         if (EVENT_ID > 0 && IS_ACTIVE == true) 
+         {
+            Print("получаем данные");
+            uchar p_buffer[256];
+            int len = interprocess_slave_recieve_common(FRAME_ID, p_buffer, ArraySize(p_buffer));
+            if (len > 0) 
+            {
+               openOrder();
+            }
+            
+         }         
+      }      
+   }   
+}
 //+------------------------------------------------------------------+
 //| Tester function                                                  |
 //+------------------------------------------------------------------+
@@ -66,3 +77,18 @@ double OnTester()
    return(ret);
   }
 //+------------------------------------------------------------------+
+
+int interprocess_slave_recieve_common(int FRAME_ID, char &p_buffer[],int bc_buffer_capacity)
+{
+   return 0;
+}
+
+bool isStopped()
+{
+   
+   return false;
+}
+
+void openOrder()
+{
+}
