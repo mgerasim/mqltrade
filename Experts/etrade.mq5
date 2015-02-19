@@ -53,13 +53,11 @@ void OnTimer()
          if (EVENT_ID > 0 && IS_ACTIVE == true) 
          {
             Print("получаем данные");
-            uchar p_buffer[256];
-            int len = interprocess_slave_recieve_common(FRAME_ID, p_buffer, ArraySize(p_buffer));
+            int len = interprocess_slave_recieve_common();
             if (len > 0) 
-            {
+            {               
                openOrder();
             }
-            
          }         
       }      
    }   
@@ -78,7 +76,12 @@ double OnTester()
   }
 //+------------------------------------------------------------------+
 
-int interprocess_slave_recieve_common(int FRAME_ID, char &p_buffer[],int bc_buffer_capacity)
+int interprocess_slave_recieve_common()
+{
+   return 0;
+}
+
+int interprocess_slave_recieve(int FRAME_ID, char &p_buffer[],int bc_buffer_capacity)
 {
    return 0;
 }
