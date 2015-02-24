@@ -9,9 +9,25 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
+
+#include "C:\Program Files\MetaTrader 5\MQL5\Experts\buf.mqh";
+
 int EVENT_ID = 0;
 int FRAME_ID = 0;     
+int CLIENT_ID = 0;
 bool IS_ACTIVE = false;
+int isActiveTrade;
+enum {
+   CMD_SET_EVENT = 0x01,
+   CMD_SET_ACTIVE = 0x04
+   };
+   
+ /*Параметры команды SET_EVENT*/
+int stageId_ ;
+int stageTime_;
+uchar symbol_;               
+int pointsBU_;
+int divBU_;
 
 int OnInit()
   {
@@ -59,28 +75,71 @@ void OnTimer()
             
             int len = interprocess_slave_recieve_common(p_buffer, ArraySize(p_buffer), 15000, tick);
             if (len > 0) 
-            {               
-               switch (p_buffer[0]) {
-                  case 9: // buyNormal
-                        openOrder();
-                      break;
-                  case 8: // sellNorm
-                        openOrder();
-                      break;
-                  case 7: // buyAgr
-                        openOrder();
-                      break;
-                  case 6: // sellAgr
-                        openOrder();
-                      break;
-                  case 5: // buyTest
-                        openOrder();
-                      break;
-                  case 4: // sellTest
-                        openOrder();
-                      break;
-              }
-             }            
+            {
+               openOrder();
+               
+               int type;
+               int in_buf_size;
+               int last_size;
+               uchar in_buf_last[];
+               
+               ArrayResize(in_buf_, 0, 1000); 
+               in_len_ = interprocess_slave_recieve(CLIENT_ID, p_buffer, ArraySize(p_buffer));
+               if(in_len_ > 0){
+                  in_buf_next_packet_ind_ = 0;
+                  ArrayResize(in_buf_, in_len_ + in_buf_size, 1000);
+                  ArrayCopy(
+                     in_buf_,             
+                     p_buffer,        
+                     in_buf_size,         
+                     0,    
+                     in_len_  
+                  );
+                  in_len_ += in_buf_size;
+                  while (nextPacket()){
+                     type = (int)readByte();
+                     switch (type) {
+                        case CMD_SET_EVENT:
+                           stageId_ = readInt();
+                           stageTime_ = readInt();
+                           symbol_ = readString(readShort());
+                           symbolMult_ = readShort();
+                           readInt();
+                           pointsBU_ = readInt() * symbolMult_;
+                           readInt();
+                           divBU_ = readInt() * symbolMult_;
+                           readByte();
+                           updateMagic(readInt());
+             
+                           sendToChart(/*tradeChart_*/0, /*EVENT_STAGE*/0, getPacket()); 
+               
+                           initOrders();
+                           setRefreshOrder(symbol_);
+                        break;
+                        
+                        case CMD_SET_ACTIVE:
+                           isActiveTrade = readByte() > 0 ? true : false;
+                           sendToChart(/*tradeChart*/0, /*EVENT_ACTIVE_TRADE*/0, isActiveTrade ? 1 : 0);
+                           setRefreshOrder(symbol_);
+                        break;
+                     }
+                  }   
+                  last_size = in_len_ - in_buf_next_packet_ind_;
+                  ArrayResize(in_buf_last, last_size, 1000);
+                  ArrayCopy(
+                           in_buf_last,
+                           in_buf_,    
+                           0,         
+                           in_buf_next_packet_ind_,         
+                           last_size    
+                  );
+                  ArrayResize(in_buf_, last_size, 1000);
+                  ArrayCopy(
+                     in_buf_,   
+                     in_buf_last
+                  );                                 
+               }
+             }             
          }  
          else
          {
@@ -120,5 +179,21 @@ bool isStopped()
 }
 
 void openOrder()
+{
+}
+
+void updateMagic(int p)
+{
+}
+
+void sendToChart(int tradeChart, int event_id, int p)
+{
+}
+
+void initOrders()
+{
+}
+
+void setRefreshOrder(uchar symbol_)
 {
 }
