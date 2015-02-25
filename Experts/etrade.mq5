@@ -9,25 +9,15 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-
-#include "C:\Program Files\MetaTrader 5\MQL5\Experts\buf.mqh";
-
-int EVENT_ID = 0;
+int EVENT_ID = 0;     
 int FRAME_ID = 0;     
-int CLIENT_ID = 0;
 bool IS_ACTIVE = false;
-int isActiveTrade;
+
 enum {
    CMD_SET_EVENT = 0x01,
    CMD_SET_ACTIVE = 0x04
    };
    
- /*Параметры команды SET_EVENT*/
-int stageId_ ;
-int stageTime_;
-uchar symbol_;               
-int pointsBU_;
-int divBU_;
 
 int OnInit()
   {
@@ -70,76 +60,17 @@ void OnTimer()
          {
             Print("получаем данные");
             
-            uchar p_buffer[1];             
+            uchar p_buffer_recieve_common[1];             
             long tick = 0;
             
-            int len = interprocess_slave_recieve_common(p_buffer, ArraySize(p_buffer), 15000, tick);
-            if (len > 0) 
+            int len_buffer_recieve_common = interprocess_slave_recieve_common(p_buffer_recieve_common, ArraySize(p_buffer_recieve_common), 15000, tick);
+            if (len_buffer_recieve_common > 0) 
             {
                openOrder();
+               uchar p_buffer_recieve[1];
+               int len_buffer_recieve = interprocess_slave_recieve( FRAME_ID, p_buffer_recieve, ArraySize(p_buffer_recieve) );               
                
-               int type;
-               int in_buf_size;
-               int last_size;
-               uchar in_buf_last[];
-               
-               ArrayResize(in_buf_, 0, 1000); 
-               in_len_ = interprocess_slave_recieve(CLIENT_ID, p_buffer, ArraySize(p_buffer));
-               if(in_len_ > 0){
-                  in_buf_next_packet_ind_ = 0;
-                  ArrayResize(in_buf_, in_len_ + in_buf_size, 1000);
-                  ArrayCopy(
-                     in_buf_,             
-                     p_buffer,        
-                     in_buf_size,         
-                     0,    
-                     in_len_  
-                  );
-                  in_len_ += in_buf_size;
-                  while (nextPacket()){
-                     type = (int)readByte();
-                     switch (type) {
-                        case CMD_SET_EVENT:
-                           stageId_ = readInt();
-                           stageTime_ = readInt();
-                           symbol_ = readString(readShort());
-                           symbolMult_ = readShort();
-                           readInt();
-                           pointsBU_ = readInt() * symbolMult_;
-                           readInt();
-                           divBU_ = readInt() * symbolMult_;
-                           readByte();
-                           updateMagic(readInt());
-             
-                           sendToChart(/*tradeChart_*/0, /*EVENT_STAGE*/0, getPacket()); 
-               
-                           initOrders();
-                           setRefreshOrder(symbol_);
-                        break;
-                        
-                        case CMD_SET_ACTIVE:
-                           isActiveTrade = readByte() > 0 ? true : false;
-                           sendToChart(/*tradeChart*/0, /*EVENT_ACTIVE_TRADE*/0, isActiveTrade ? 1 : 0);
-                           setRefreshOrder(symbol_);
-                        break;
-                     }
-                  }   
-                  last_size = in_len_ - in_buf_next_packet_ind_;
-                  ArrayResize(in_buf_last, last_size, 1000);
-                  ArrayCopy(
-                           in_buf_last,
-                           in_buf_,    
-                           0,         
-                           in_buf_next_packet_ind_,         
-                           last_size    
-                  );
-                  ArrayResize(in_buf_, last_size, 1000);
-                  ArrayCopy(
-                     in_buf_,   
-                     in_buf_last
-                  );                                 
-               }
-             }             
+            }             
          }  
          else
          {
@@ -164,36 +95,51 @@ double OnTester()
 
 int interprocess_slave_recieve_common(char &p_buffer[], int bc_buffer_capacity, int t, int tick)
 {
-   return 0;
+   int i = 0;
+   while (i<2)
+   {
+      i++;
+      Sleep(tick); // период ожидания согласно пункта 1 ТЗ      
+   }
+   // Имитируем получения данных
+   ArrayResize(p_buffer, bc_buffer_capacity * 2); 
+   ArrayInitialize(p_buffer, 'A');
+   return ArraySize(p_buffer);
 }
 
 int interprocess_slave_recieve(int p_frame_id, char &p_buffer[],int bc_buffer_capacity)
 {
+   struct item_format
+   {
+      short TYPE;// (1: NORM, 2: AGR,  4: TEST)
+      int QTY; //  ( -> double  / 1000) 
+      int DIV;
+      int PROFIT;
+   };
+   
+   struct event_params 
+   {
+      int EVENT_ID; //идентификатор события
+      string SYMBOL;
+      short MULT;
+      int STOPLOSS;
+      int POINTS_BU;
+      int NORM_SPREAD;
+      int DIV_BU;
+      bool IS_REVERSE;
+      int ORDER_MAGIC;
+      short ITEMS_COUNT;
+      item_format ITEMS[3];
+   };
+      
+   event_params eventParams = {1, "test", 3, 50, 20, 35, 15, true, 2, sizeof(event_params), {{1, 30, 20, 5}, {4, 20, 50, 10}, {2, 25, 45, 3}}};
+   
+   
+   
    return 0;
 }
 
-bool isStopped()
-{
-   
-   return false;
-}
 
 void openOrder()
-{
-}
-
-void updateMagic(int p)
-{
-}
-
-void sendToChart(int tradeChart, int event_id, int p)
-{
-}
-
-void initOrders()
-{
-}
-
-void setRefreshOrder(uchar symbol_)
 {
 }
